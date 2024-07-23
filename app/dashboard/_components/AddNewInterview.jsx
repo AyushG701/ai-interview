@@ -15,15 +15,20 @@ import { chatSession } from "@/utils/GeminiAIModel";
 import { Loader, LoaderCircle } from "lucide-react";
 import { MockInterview } from "@/utils/schema";
 import { v4 as uuidv4 } from "uuid";
-const { user } = useUser();
+import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { db } from "@/utils/db";
+import moment from "moment";
+
 const AddNewInterview = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [jobPosition, setJobPosition] = useState();
   const [jobDesc, setJobDesc] = useState();
-
   const [jobExperience, setJobExperience] = useState();
   const [loading, setLoading] = useState(false);
   const [jsonResponse, setJsonResponse] = useState([]);
+  const router = useRouter();
+  const { user } = useUser();
 
   const onSubmit = async (e) => {
     setLoading(true);
@@ -39,7 +44,7 @@ const AddNewInterview = () => {
       jobExperience +
       " , Depends on Job Position, Job Description & Years of Experience give us " +
       process.env.NEXT_PUBLIC_INTERVIEW_QUESTION_COUNT +
-      " Interview question along with Answer in JSON format, Give us question and answer field on JSON";
+      " Interview question along with Answer in JSON format, Give us question and answer field on JSON exactly nothing extra";
 
     const result = await chatSession.sendMessage(InputPrompt);
     console.log(result.response.text());
@@ -54,7 +59,6 @@ const AddNewInterview = () => {
         .insert(MockInterview)
         .values({
           mockId: uuidv4(),
-          mockId: uuidv4(),
           jsonMockResp: MockJsonResp,
           jobPosition: jobPosition,
           jobDesc: jobDesc,
@@ -64,12 +68,17 @@ const AddNewInterview = () => {
         })
         .returning({ mockId: MockInterview.mockId });
       console.log("Inserted ID:", resp);
+      if (resp) {
+        setOpenDialog(false);
+        router.push("/dashboard/interview/" + resp[0]?.mockId);
+      }
     } else {
-      console.log("ERror");
+      console.log("Error");
     }
 
     setLoading(false);
   };
+
   return (
     <div>
       <div
