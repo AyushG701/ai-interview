@@ -7,7 +7,11 @@ import useSpeechToText from "react-hook-speech-to-text";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Mic, StopCircle } from "lucide-react";
-
+import moment from "moment";
+import { chatSession } from "@/utils/GeminiAIModal";
+import { toast } from "sonner";
+import { db } from "@/utils/db";
+import { UserAnswer } from "@/utils/schema";
 const RecordAnswerSection = () => {
   const [userAnswer, setUserAnswer] = useState("");
   const { user } = useUser();
@@ -30,12 +34,57 @@ const RecordAnswerSection = () => {
     );
   }, [results]);
 
+  useEffect(() => {
+    if (!isRecording && userAnswer?.length > 10) {
+      UpdateUserAnswer();
+    }
+  }, [userAnswer]);
+
   const StartStopRecording = () => {
     if (isRecording) {
       stopSpeechToText();
     } else {
       startSpeechToText();
     }
+  };
+
+  const UpdateUserAnswer = async () => {
+    console.log(userAnswer);
+    setLoading(true);
+    const feedbackPrompt =
+      "Question:" +
+      mockInterviewQuestion[activeQuestionIndex]?.question +
+      ", User Answer:" +
+      userAnswer +
+      ",Depends on question and user answer for give interview question " +
+      " please give us rating for answer and feedback as area of improvmenet if any " +
+      "in just 3 to 5 lines to improve it in JSON format with rating field and feedback field";
+
+    const result = await chatSession.sendMessage(feedbackPrompt);
+    const mockJsonResp = result.response
+      .text()
+      .replace("```json", "")
+      .replace("```", "");
+    const JsonFeedbackResp = JSON.parse(mockJsonResp);
+    const resp = await db.insert(UserAnswer).values({
+      mockIdRef: interviewData?.mockId,
+      question: mockInterviewQuestion[activeQuestionIndex]?.question,
+      correctAns: mockInterviewQuestion[activeQuestionIndex]?.answer,
+      userAns: userAnswer,
+      feedback: JsonFeedbackResp?.feedback,
+      rating: JsonFeedbackResp?.rating,
+      userEmail: user?.primaryEmailAddress?.emailAddress,
+      createdAt: moment().format("DD-MM-yyyy"),
+    });
+
+    if (resp) {
+      toast("User Answer recorded successfully");
+      setUserAnswer("");
+      setResults([]);
+    }
+    setResults([]);
+
+    setLoading(false);
   };
 
   return (
@@ -50,9 +99,9 @@ const RecordAnswerSection = () => {
         <Webcam
           mirrored={true}
           style={{
-            height: 300,
-            width: 300,
-            zIndex: 10,
+            height: 400,
+            width: 400,
+            zIndex: 11,
           }}
         />
       </div>
