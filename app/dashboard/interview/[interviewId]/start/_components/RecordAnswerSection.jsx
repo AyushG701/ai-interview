@@ -8,14 +8,20 @@ import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Mic, StopCircle } from "lucide-react";
 import moment from "moment";
-import { chatSession } from "@/utils/GeminiAIModal";
-import { toast } from "sonner";
+import { chatSession } from "@/utils/GeminiAIModel";
+import { toast, Toaster } from "sonner";
 import { db } from "@/utils/db";
 import { UserAnswer } from "@/utils/schema";
-const RecordAnswerSection = () => {
+
+const RecordAnswerSection = ({
+  mockInterviewQuestion,
+  activeQuestionIndex,
+  interviewData,
+}) => {
   const [userAnswer, setUserAnswer] = useState("");
   const { user } = useUser();
   const [loading, setLoading] = useState(false);
+
   const {
     error,
     interimResult,
@@ -23,6 +29,7 @@ const RecordAnswerSection = () => {
     results,
     startSpeechToText,
     stopSpeechToText,
+    setResults,
   } = useSpeechToText({
     continuous: true,
     useLegacyResults: false,
@@ -122,7 +129,7 @@ const RecordAnswerSection = () => {
           </h2>
         )}
       </Button>
-      <Button onClick={() => console.log(userAnswer)}>Show User Answer</Button>
+      {/* <Button onClick={() => console.log(userAnswer)}>Show User Answer</Button> */}
     </div>
   );
 };
